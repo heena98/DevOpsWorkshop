@@ -1,42 +1,38 @@
 ---
-- hosts: jenkins-master  # Specifies the target host group (defined in the inventory file)
-  become: true  # Run tasks with sudo privileges
+- hosts: jenkins-master  # Target the jenkins-master group
+  become: true  # Run as sudo
 
   tasks:
 
-    - name: Update and upgrade packages  # Ensures the system is updated before installation
-      apt:
-        update_cache: yes
-        upgrade: yes
+    - name: Update system packages  # Updates system repositories
+      yum:
+        name: '*'
+        state: latest
 
-    - name: Add Jenkins GPG key  # Adds the official Jenkins GPG key for secure installation
-      apt_key:
-        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    - name: Install required dependencies  # Installs dependencies needed for Jenkins
+      yum:
+        name:
+          - java-11-amazon-corretto  # Amazon Linux supports Corretto (alternative to OpenJDK)
+          - wget
         state: present
 
-    - name: Add Jenkins repository  # Adds the official Jenkins repository to the system
-      apt_repository:
-        repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
-        state: present
-        filename: 'jenkins'  # Saves the repo file as `/etc/apt/sources.list.d/jenkins.list`
+    - name: Add Jenkins repository  # Adds the official Jenkins repo
+      get_url:
+        url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
 
-    - name: Install Java  # Installs OpenJDK 11, required for Jenkins
-      apt:
-        name: openjdk-11-jre
+    - name: Import Jenkins GPG key  # Adds the official GPG key for verification
+      rpm_key:
         state: present
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
 
-    - name: Install Jenkins  # Installs Jenkins from the added repository
-      apt:
+    - name: Install Jenkins  # Installs Jenkins
+      yum:
         name: jenkins
         state: present
-        update_cache: yes  # Ensures cache is updated before installing
 
-    - name: Start Jenkins service  # Ensures the Jenkins service is running
+    - name: Start and enable Jenkins service  # Ensures Jenkins runs on startup
       systemd:
         name: jenkins
         state: started
-
-    - name: Enable Jenkins to start at boot  # Ensures Jenkins starts automatically on reboot
-      systemd:
-        name: jenkins
         enabled: yes
