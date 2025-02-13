@@ -1,0 +1,42 @@
+---
+- hosts: jenkins-master  # Specifies the target host group (defined in the inventory file)
+  become: true  # Run tasks with sudo privileges
+
+  tasks:
+
+    - name: Update and upgrade packages  # Ensures the system is updated before installation
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Add Jenkins GPG key  # Adds the official Jenkins GPG key for secure installation
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        state: present
+
+    - name: Add Jenkins repository  # Adds the official Jenkins repository to the system
+      apt_repository:
+        repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
+        state: present
+        filename: 'jenkins'  # Saves the repo file as `/etc/apt/sources.list.d/jenkins.list`
+
+    - name: Install Java  # Installs OpenJDK 11, required for Jenkins
+      apt:
+        name: openjdk-11-jre
+        state: present
+
+    - name: Install Jenkins  # Installs Jenkins from the added repository
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes  # Ensures cache is updated before installing
+
+    - name: Start Jenkins service  # Ensures the Jenkins service is running
+      systemd:
+        name: jenkins
+        state: started
+
+    - name: Enable Jenkins to start at boot  # Ensures Jenkins starts automatically on reboot
+      systemd:
+        name: jenkins
+        enabled: yes
