@@ -1,38 +1,50 @@
 ---
-- hosts: jenkins-master  # Target the jenkins-master group
-  become: true  # Run as sudo
+- hosts: jenkins-master
+  become: true 
+  tasks: 
+  # Download the Jenkins key and save it to the specified location
+  - name: download jenkins key
+    get_url:
+      url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+      dest: /usr/share/keyrings/jenkins-keyring.asc
 
-  tasks:
+  # Add the Jenkins repository to the apt sources list, using the downloaded key for verification
+  - name: add jenkins repo 
+    apt_repository: 
+      repo: 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/'
+      state: present 
 
-    - name: Update system packages  # Updates system repositories
-      yum:
-        name: '*'
-        state: latest
+  # Add the universe repository to ensure all necessary packages are available
+  - name: add universe repository
+    apt_repository:
+      repo: 'deb http://archive.ubuntu.com/ubuntu/ focal universe'
+      state: present
 
-    - name: Install required dependencies  # Installs dependencies needed for Jenkins
-      yum:
-        name:
-          - java-11-amazon-corretto  # Amazon Linux supports Corretto (alternative to OpenJDK)
-          - wget
-        state: present
+  # Update the apt package cache to ensure the latest package lists are used
+  - name: update apt cache
+    apt:
+      update_cache: yes
 
-    - name: Add Jenkins repository  # Adds the official Jenkins repo
-      get_url:
-        url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
-        dest: /etc/yum.repos.d/jenkins.repo
+  # Install Java (OpenJDK 17) to provide the necessary runtime environment for Jenkins
+  - name: install java 
+    apt: 
+      name: openjdk-17-jre-headless
+      state: present
 
-    - name: Import Jenkins GPG key  # Adds the official GPG key for verification
-      rpm_key:
-        state: present
-        key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+  # Install Jenkins from the added repository
+  - name: install jenkins 
+    apt: 
+      name: jenkins 
+      state: present 
 
-    - name: Install Jenkins  # Installs Jenkins
-      yum:
-        name: jenkins
-        state: present
+  # Start the Jenkins service to ensure it is running
+  - name: start jenkins service 
+    service: 
+      name: jenkins 
+      state: started 
 
-    - name: Start and enable Jenkins service  # Ensures Jenkins runs on startup
-      systemd:
-        name: jenkins
-        state: started
-        enabled: yes
+  # Enable the Jenkins service to start automatically at boot time
+  - name: enable jenkins to start at boot time 
+    service: 
+      name: jenkins 
+      enabled: yes
