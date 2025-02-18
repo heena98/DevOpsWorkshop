@@ -1,0 +1,25 @@
+---
+- hosts: jenkins-slave
+  become: true 
+  tasks: 
+  - name: update ubuntu repo and cache 
+    apt: 
+      update_cache: yes  # Updates the package index cache
+      force_apt_get: yes  # Forces the use of apt-get instead of aptitude
+      cache_valid_time: 3600  # Sets the cache validity time to 1 hour
+
+  - name: install java 
+    apt: 
+      name: openjdk-17-jre-headless  # Installs the OpenJDK 17 JRE without GUI components
+      state: present  # Ensures the package is installed
+
+  - name: download maven packages 
+    get_url:
+      url: https://archive.apache.org/dist/maven/maven-3/3.9.2/binaries/apache-maven-3.9.2-bin.tar.gz  # URL to download Maven package
+      dest: /opt  # Destination directory for the downloaded file
+
+  - name: extract maven packages 
+    unarchive:
+      src: /opt/apache-maven-3.9.2-bin.tar.gz  # Source file to extract
+      dest: /opt  # Destination directory for the extracted files
+      remote_src: yes  # Indicates that the source file is already on the remote machine
